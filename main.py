@@ -20,7 +20,9 @@ def fpca(t: np.ndarray, x: np.ndarray, k: int):
 
     Z = x_norm @ eigenvectors[:, :, :k]
     x_norm_hat = Z @ eigenvectors[:, :, :k].transpose(0,2,1)
-    return np.mean(np.square(x_norm - x_norm_hat))
+
+    return x_norm_hat + mu
+    #return np.mean(np.square(x_norm - x_norm_hat))
 
 
 def ffpca(t: np.ndarray, x: np.ndarray, k: int):
@@ -47,4 +49,5 @@ def ffpca(t: np.ndarray, x: np.ndarray, k: int):
     y_hat = Z @ evec_hat[:, :, :k].transpose(0,2,1)
 
     y = np.fft.ifft(y_hat, axis=0)
-    return np.mean(np.square(np.absolute(x - y)))
+    return y + mu
+    #return np.mean(np.square(np.absolute(x - y)))
