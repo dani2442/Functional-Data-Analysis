@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
 
 class FPCA:
     def __init__(self, mu: np.ndarray = None, eigenvectors: np.ndarray = None):
@@ -87,3 +89,47 @@ class FFPCA:
         y = np.fft.ifft(y_hat, axis=0)
         return y
     
+
+def estimate_fourier_cov_mean(x: pd.DataFrame, N: int, bs: int=256, n: int=100):
+    p = x.shape[1]
+    max_start = x.shape[0]-N
+
+    cov_hat = np.zeros((N, p, p))
+    mu_hat = np.zeros((N, 1, p))
+
+    for i in tqdm(range(1,n+1)):
+        starts = np.random.randint(0, max_start, size=bs)
+        windows = [x.iloc[start:start+N].to_numpy() for start in starts]
+        x_i = np.stack(windows).transpose(1,0,2)
+        
+        x_hat = np.fft.fft(x_i, axis=0)
+        mu_hat_i = np.mean(x_hat, axis=1, keepdims=True)
+        mu_hat = (mu_hat + mu_hat_i/(i*bs)) * (i/(i+1))
+
+        x_hat = x_hat - mu_hat
+        cov_hat_i = x_hat.transpose(0,2,1) @ x_hat
+        cov_hat = (cov_hat + cov_hat_i/(i*bs)) *(i/(i+1))
+
+    return cov_hat, mu_hat
+
+    
+def estimate_cov_mean(x: pd.DataFrame, N: int, bs: int=256, n: int=100):
+    p = x.shape[1]
+    max_start = x.shape[0]-N
+
+    cov = np.zeros((N, p, p))
+    mu = np.zeros((N, 1, p))
+
+    for i in tqdm(range(1,n+1)):
+        starts = np.random.randint(0, max_start, size=bs)
+        windows = [x.iloc[start:start+N].to_numpy() for start in starts]
+        x_i = np.stack(windows).transpose(1,0,2)
+
+        mu_i = np.mean(x_i, axis=1, keepdims=True)
+        mu = (mu + mu_i/(i*bs)) * (i/(i+1))
+
+        x_i = x_i - mu
+        cov_i = x_i.transpose(0,2,1) @ x_i
+        cov = (cov + cov_i/(i*bs)) *(i/(i+1))
+
+    return cov, mu
